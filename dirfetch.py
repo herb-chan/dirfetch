@@ -1,7 +1,7 @@
 import os
 import argparse
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from collections import defaultdict
 
 # Function to read config and return relevant settings
@@ -29,13 +29,21 @@ def format_size(size_in_bytes):
         size_in_bytes /= 1024.0
     return f"{size_in_bytes:.2f} PB"
 
-def count_files_in_directory(directory, recursive=True):
+def count_files_in_directory(directory, recursive=True, include_hidden=True):
     total_files = 0
     file_sizes = defaultdict(lambda: {"count": 0, "size": 0})
+    subdirectories = []
     last_changed_file = None
     last_changed_time = 0
 
-    for root, _, files in os.walk(directory):
+    for root, dirs, files in os.walk(directory):
+        if not include_hidden:
+            files = [f for f in files if not f.startswith('.')]
+            dirs[:] = [d for d in dirs if not d.startswith('.')]
+
+        if not recursive:
+            subdirectories = dirs  # Only consider current-level subdirectories if non-recursive
+        
         for file in files:
             file_path = os.path.join(root, file)
             try:
@@ -48,28 +56,28 @@ def count_files_in_directory(directory, recursive=True):
                 file_mtime = os.path.getmtime(file_path)
                 if file_mtime > last_changed_time:
                     last_changed_time = file_mtime
-                    last_changed_file = file  # Store full path
+                    last_changed_file = file
 
                 total_files += 1
-
             except FileNotFoundError:
                 continue  # Skip files that no longer exist
 
-    return total_files, file_sizes, last_changed_file, last_changed_time
+        if not recursive:  # Stop processing deeper directories if -cd is used
+            break
+
+    return total_files, file_sizes, last_changed_file, last_changed_time, subdirectories
 
 def format_date(last_changed_time, config):
     """Format the last modified date based on configuration."""
     if last_changed_time <= 0:
-        return "N/A"  # Fallback for invalid date
+        return "N/A"
 
     current_time = datetime.now()
     last_changed_dt = datetime.fromtimestamp(last_changed_time)
 
-    # Get date display mode from config
     date_display_mode = config.get("date_display_mode", "auto")
     date_format = config.get("date_format", "%d.%m.%Y")
     
-    # Calculate the time difference
     time_diff = current_time - last_changed_dt
     days_diff = time_diff.days
     hours_diff = time_diff.seconds // 3600
@@ -77,14 +85,11 @@ def format_date(last_changed_time, config):
     seconds_diff = time_diff.seconds % 60
     
     if date_display_mode == "auto":
-        # Use relative date if it's within the last 7 days
-        if days_diff == 0:  # within today
+        if days_diff == 0:
             if hours_diff > 0:
                 return f"{hours_diff} hours ago"
             elif minutes_diff > 0:
                 return f"{minutes_diff} minutes ago"
-            elif seconds_diff > 0:
-                return f"{seconds_diff} seconds ago"
             else:
                 return "Just now"
         elif days_diff <= 7:
@@ -93,25 +98,22 @@ def format_date(last_changed_time, config):
             return last_changed_dt.strftime(date_format)
     
     elif date_display_mode == "relative_only":
-        # Only show relative date
-        if days_diff == 0:  # within today
+        if days_diff == 0:
             if hours_diff > 0:
                 return f"{hours_diff} hours ago"
             elif minutes_diff > 0:
                 return f"{minutes_diff} minutes ago"
-            elif seconds_diff > 0:
-                return f"{seconds_diff} seconds ago"
             else:
                 return "Just now"
         else:
             return f"{days_diff} day ago" if days_diff == 1 else f"{days_diff} days ago"
     
     elif date_display_mode == "absolute_only":
-        # Only show absolute date
         return last_changed_dt.strftime(date_format)
 
-def fetch_directory_info(directory, config, file_details=False):
-    total_files, file_sizes, last_changed_file, last_changed_time = count_files_in_directory(directory, recursive=True)
+def fetch_directory_info(directory, config, file_details=False, current_only=False):
+    include_hidden = config.get("include_hidden_files", "off") == "on"
+    total_files, file_sizes, last_changed_file, last_changed_time, subdirectories = count_files_in_directory(directory, recursive=not current_only, include_hidden=include_hidden)
     
     print(f"┌───────── Directory Information ─────────┐")
     
@@ -133,29 +135,19 @@ def fetch_directory_info(directory, config, file_details=False):
         message = config.get("last_modified_date_message", "  Last Modified Date: {}")
         print(message.format(formatted_date))
     
+    if current_only and subdirectories:
+        print("\nSubdirectories:")
+        for sub in subdirectories:
+            print(f"   {sub}")
+    
     print(f"└─────────────────────────────────────────┘")
     
     # Detailed File Information Section
     if file_details or config.get("file_details_enabled", "off") == "on":
         print(f"┌───────── Detailed File Information ─────────┐")
-        
-        if config.get("fd_show_file_sizes", "off") == "on":
-            message = config.get("fd_file_sizes_message", "  {}: {} ({}) files")
-            for ext, data in file_sizes.items():
-                print(message.format(ext.upper(), format_size(data['size']), data['count']))
-        
-        if config.get("fd_show_file_count", "off") == "on":
-            message = config.get("fd_file_count_message", "  Total Files: {}")
-            print(message.format(total_files))
-        
-        if config.get("fd_show_file_types", "off") == "on":
-            message = config.get("fd_file_types_message", "  File Types: {}")
-            print(message.format(len(file_sizes)))
-        
-        if config.get("fd_show_extensions", "off") == "on":
-            message = config.get("fd_file_extensions_message", "  File Extensions: {}")
-            print(message.format(", ".join(file_sizes.keys())))
-        
+        for ext, data in file_sizes.items():
+            message = config.get("fd_file_sizes_message", "  .{}: {} ({} files)")
+            print(message.format(ext.lower(), format_size(data['size']), data['count']))
         print(f"└─────────────────────────────────────────────┘")
 
 def main():
@@ -163,14 +155,14 @@ def main():
     parser.add_argument("directory", help="Directory to fetch information for")
     parser.add_argument("-c", "--config", default="config/dirfetch.conf", help="Path to config file")
     parser.add_argument("-fd", "--file-details", action="store_true", help="Show detailed file information")
+    parser.add_argument("-cd", "--current-directory", action="store_true", help="Limit to current directory (non-recursive)")
 
     args = parser.parse_args()
 
-    # Load configuration from file
     config = load_config(args.config)
-
-    # Fetch and display directory info, with file-details if -fd is passed
-    fetch_directory_info(args.directory, config, file_details=args.file_details)
+    
+    current_directory_mode = args.current_directory or config.get("current_directory_mode", "off") == "on"
+    fetch_directory_info(args.directory, config, file_details=args.file_details, current_only=current_directory_mode)
 
 if __name__ == "__main__":
     main()
