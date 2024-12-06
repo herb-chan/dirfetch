@@ -108,41 +108,152 @@ def format_date(last_changed_time, config):
 
     return last_changed_dt.strftime(date_format)  # Absolute mode by default
 
+# Function to print ASCII art
+def print_ascii_art():
+    ascii_art = """
+                   -`
+                  .o+`
+                 `ooo/
+                `+oooo:
+               `+oooooo:
+               -+oooooo+:
+             `/:-:++oooo+:
+            `/++++/+++++++:
+           `/++++++++++++++:
+          `/+++ooooooooooooo/`
+         ./ooosssso++osssssso+`
+        .oossssso-````/ossssss+`
+       -osssssso.      :ssssssso.
+      :osssssss/        osssso+++
+     /ossssssss/        +ssssooo/-
+   `/ossssso+/:-        -:/+osssso+-
+  `+sso+:-`                 `.-/+oso:
+ `++:.                           `-/+/
+ .`                                 `
+    """
+    print(ascii_art)
+
 # Display directory information based on the configuration
+# Function to display ASCII art next to directory information
+def print_ascii_art():
+    ascii_art = """
+                   -`
+                  .o+`
+                 `ooo/
+                `+oooo:
+               `+oooooo:
+               -+oooooo+:
+             `/:-:++oooo+:
+            `/++++/+++++++:
+           `/++++++++++++++:
+          `/+++ooooooooooooo/`
+         ./ooosssso++osssssso+`
+        .oossssso-````/ossssss+`
+       -osssssso.      :ssssssso.
+      :osssssss/        osssso+++
+     /ossssssss/        +ssssooo/-
+   `/ossssso+/:-        -:/+osssso+-
+  `+sso+:-`                 `.-/+oso:
+ `++:.                           `-/+/
+ .`                                 `
+    """
+    return ascii_art
+
+# Display directory information aligned next to ASCII art
+def print_ascii_art():
+    # Your ASCII art
+    ascii_art = """
+                   -`
+                  .o+`
+                 `ooo/
+                `+oooo:
+               `+oooooo:
+               -+oooooo+:
+             `/:-:++oooo+:
+            `/++++/+++++++:
+           `/++++++++++++++:
+          `/+++ooooooooooooo/`
+         ./ooosssso++osssssso+`
+        .oossssso-````/ossssss+`
+       -osssssso.      :ssssssso.
+      :osssssss/        osssso+++
+     /ossssssss/        +ssssooo/-
+   `/ossssso+/:-        -:/+osssso+-
+  `+sso+:-`                 `.-/+oso:
+ `++:.                           `-/+/
+ .`                                 `
+    """
+    return ascii_art
+
+
+def print_ascii_art(config):
+    # Read the path to the ASCII art file from the config
+    ascii_art_file = config.get('ascii_art_file', 'config/ascii_art.txt')  # Default path if not specified
+    
+    # Read the ASCII art from the file
+    try:
+        with open(ascii_art_file, 'r') as file:
+            ascii_art = file.read()
+    except FileNotFoundError:
+        print(f"Error: The ASCII art file '{ascii_art_file}' was not found.")
+        return '', 0  # Return empty art and 0 width in case of error
+    
+    # Calculate the width of the ASCII art (longest line + 1)
+    ascii_lines = ascii_art.splitlines()
+    ascii_width = max(len(line) for line in ascii_lines) + 1
+    
+    return ascii_art, ascii_width
+
 def fetch_directory_info(directory, config, file_details=False, current_only=False):
+    # Assume count_files_in_directory and other necessary functions are defined elsewhere
     include_hidden = config.get("include_hidden_files", "off") == "on"
     total_files, file_sizes, last_changed_file, last_changed_time, subdirectories = count_files_in_directory(
         directory, recursive=not current_only, include_hidden=include_hidden
     )
-    
-    print(f"┌───────── Directory Information ─────────┐")
-    
-    if config.get("show_total_files", "on") == "on":
-        print(config.get("total_files_message", "  Total Files: {}").format(total_files))
-    
-    if config.get("show_directory_size", "on") == "on":
-        directory_size = sum(data["size"] for data in file_sizes.values())
-        print(config.get("directory_size_message", "  Directory Size: {}").format(format_size(directory_size)))
-    
-    if config.get("show_last_modified", "on") == "on":
-        print(config.get("last_modified_file_message", "  Last Modified File: {}").format(last_changed_file))
-    
-    if config.get("show_last_modified_date", "on") == "on":
-        formatted_date = format_date(last_changed_time, config)
-        print(config.get("last_modified_date_message", "  Last Modified Date: {}").format(formatted_date))
-    
-    if current_only and subdirectories:
-        print("\nSubdirectories:")
+
+    # Get the ASCII art and its width
+    ascii_art, ascii_width = print_ascii_art(config)
+
+    if not ascii_art:
+        return  # Exit if ASCII art could not be loaded
+
+    # Prepare the directory info (right side)
+    directory_info = ""
+    directory_info += "┌─────────── Directory Information ───────────┐\n"
+    directory_info += f"{config.get('total_files_message', '    Total Files: {}').format(total_files)}\n"
+    directory_info += f"{config.get('directory_size_message', '󰉖    Directory Size: {}').format(format_size(sum(data['size'] for data in file_sizes.values())))}\n"
+    directory_info += f"{config.get('last_modified_file_message', '󱇨    Last Modified File: {}').format(last_changed_file)}\n"
+    directory_info += f"{config.get('last_modified_date_message', '󱋢    Last Modified Date: {}').format(format_date(last_changed_time, config))}\n"
+
+    # Only add a closing divider if there's no subdirectories and not current_only
+    if not subdirectories and not file_details:
+        directory_info += "└─────────────────────────────────────────────┘\n"
+
+    # If subdirectories exist, add a section for subdirectories
+    if subdirectories:
+        directory_info += "├─────────────── Subdirectories ──────────────┤\n"
+        
         for sub in subdirectories:
-            print(f"   {sub}")
-    
-    print(f"└─────────────────────────────────────────┘")
-    
+            directory_info += f"{config.get('cd_subdirectory_message', '󱧩    {}').format(sub)}\n"
+        
+        if not file_details:
+            directory_info += "└─────────────────────────────────────────────┘\n"
+
+    # Handle file details section if required
     if file_details or config.get("file_details_enabled", "off") == "on":
-        print(f"┌───────── Detailed File Information ─────────┐")
+        directory_info += "├───────── Detailed File Information ─────────┤\n"
         for ext, data in file_sizes.items():
-            print(config.get("fd_file_sizes_message", "  .{}: {} ({} files)").format(ext.lower(), format_size(data['size']), data['count']))
-        print(f"└─────────────────────────────────────────────┘")
+            directory_info += f"{config.get('fd_file_sizes_message', '󰓼    .{}: {} ({} files)').format(ext.lower(), format_size(data['size']), data['count'])}\n"
+        directory_info += "└─────────────────────────────────────────────┘\n"
+
+    # Now, print ASCII art and directory info side by side
+    lines = max(len(ascii_art.splitlines()), len(directory_info.splitlines()))
+    
+    for i in range(lines):
+        ascii_line = (ascii_art.splitlines() + [''] * lines)[i]  # Ensure equal length
+        info_line = (directory_info.splitlines() + [''] * lines)[i]  # Ensure equal length
+        print(f"{ascii_line:<{ascii_width}} {info_line}")
+
 
 # Main function to parse arguments and execute the program
 def main():
