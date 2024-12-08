@@ -38,24 +38,33 @@ def count_files_in_directory(directory, recursive=True, include_hidden=True, exc
     last_changed_file = None
     last_changed_time = 0
 
+    # Interpret depth correctly
+    depth = 0 if depth is None else depth
+
     for root, dirs, files in os.walk(directory):
-        # Exclude hidden files if specified
+        # Calculate current depth relative to the base directory
+        current_depth = root[len(directory):].count(os.sep)
+
+        # Stop recursion if depth is exceeded
+        if current_depth > depth:
+            dirs[:] = []  # Prevent deeper traversal
+            continue
+
+        # List subdirectories if at the exact requested depth
+        if current_depth == depth:
+            subdirectories.extend([d for d in dirs if include_hidden or not d.startswith('.')])
+
+        # Exclude hidden files and directories if configured
         if not include_hidden:
             files = [f for f in files if not f.startswith('.')]
             dirs[:] = [d for d in dirs if not d.startswith('.')]
 
-        # Exclude files matching any of the specified patterns
+        # Exclude files matching patterns
         if exclude_patterns:
             for pattern in exclude_patterns:
                 files = [f for f in files if not fnmatch.fnmatch(f, pattern)]
 
-        # Control recursion depth
-        current_depth = root[len(directory):].count(os.sep)
-        if depth is not None and current_depth >= depth:
-            dirs[:] = []  # Prevent deeper traversal if max depth is reached
-        if not recursive and current_depth > 0:
-            dirs[:] = []  # Stop recursion beyond this level if non-recursive
-
+        # Process files in the current directory
         for file in files:
             file_path = os.path.join(root, file)
             try:
@@ -72,7 +81,7 @@ def count_files_in_directory(directory, recursive=True, include_hidden=True, exc
 
                 total_files += 1
             except FileNotFoundError:
-                continue  # Skip files that no longer exist
+                continue
 
     return total_files, file_sizes, last_changed_file, last_changed_time, subdirectories
 
