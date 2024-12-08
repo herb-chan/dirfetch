@@ -1,5 +1,6 @@
 import os
 import argparse
+import fnmatch
 from datetime import datetime
 from collections import defaultdict
 
@@ -30,7 +31,7 @@ def format_size(size_in_bytes):
     return f"{size_in_bytes:.2f} PB"
 
 # Count files and gather size information in the specified directory
-def count_files_in_directory(directory, recursive=True, include_hidden=True):
+def count_files_in_directory(directory, recursive=True, include_hidden=True, exclude_patterns=None, depth=None):
     total_files = 0
     file_sizes = defaultdict(lambda: {"count": 0, "size": 0})
     subdirectories = []
@@ -38,13 +39,23 @@ def count_files_in_directory(directory, recursive=True, include_hidden=True):
     last_changed_time = 0
 
     for root, dirs, files in os.walk(directory):
+        # Exclude hidden files if specified
         if not include_hidden:
             files = [f for f in files if not f.startswith('.')]
             dirs[:] = [d for d in dirs if not d.startswith('.')]
 
-        if not recursive:
-            subdirectories = dirs  # Consider only current-level subdirectories if non-recursive
-        
+        # Exclude files matching any of the specified patterns
+        if exclude_patterns:
+            for pattern in exclude_patterns:
+                files = [f for f in files if not fnmatch.fnmatch(f, pattern)]
+
+        # Control recursion depth
+        current_depth = root[len(directory):].count(os.sep)
+        if depth is not None and current_depth >= depth:
+            dirs[:] = []  # Prevent deeper traversal if max depth is reached
+        if not recursive and current_depth > 0:
+            dirs[:] = []  # Stop recursion beyond this level if non-recursive
+
         for file in files:
             file_path = os.path.join(root, file)
             try:
@@ -62,9 +73,6 @@ def count_files_in_directory(directory, recursive=True, include_hidden=True):
                 total_files += 1
             except FileNotFoundError:
                 continue  # Skip files that no longer exist
-
-        if not recursive:
-            break  # Stop processing deeper directories if non-recursive mode
 
     return total_files, file_sizes, last_changed_file, last_changed_time, subdirectories
 
@@ -108,84 +116,6 @@ def format_date(last_changed_time, config):
 
     return last_changed_dt.strftime(date_format)  # Absolute mode by default
 
-# Function to print ASCII art
-def print_ascii_art():
-    ascii_art = """
-                   -`
-                  .o+`
-                 `ooo/
-                `+oooo:
-               `+oooooo:
-               -+oooooo+:
-             `/:-:++oooo+:
-            `/++++/+++++++:
-           `/++++++++++++++:
-          `/+++ooooooooooooo/`
-         ./ooosssso++osssssso+`
-        .oossssso-````/ossssss+`
-       -osssssso.      :ssssssso.
-      :osssssss/        osssso+++
-     /ossssssss/        +ssssooo/-
-   `/ossssso+/:-        -:/+osssso+-
-  `+sso+:-`                 `.-/+oso:
- `++:.                           `-/+/
- .`                                 `
-    """
-    print(ascii_art)
-
-# Display directory information based on the configuration
-# Function to display ASCII art next to directory information
-def print_ascii_art():
-    ascii_art = """
-                   -`
-                  .o+`
-                 `ooo/
-                `+oooo:
-               `+oooooo:
-               -+oooooo+:
-             `/:-:++oooo+:
-            `/++++/+++++++:
-           `/++++++++++++++:
-          `/+++ooooooooooooo/`
-         ./ooosssso++osssssso+`
-        .oossssso-````/ossssss+`
-       -osssssso.      :ssssssso.
-      :osssssss/        osssso+++
-     /ossssssss/        +ssssooo/-
-   `/ossssso+/:-        -:/+osssso+-
-  `+sso+:-`                 `.-/+oso:
- `++:.                           `-/+/
- .`                                 `
-    """
-    return ascii_art
-
-# Display directory information aligned next to ASCII art
-def print_ascii_art():
-    # Your ASCII art
-    ascii_art = """
-                   -`
-                  .o+`
-                 `ooo/
-                `+oooo:
-               `+oooooo:
-               -+oooooo+:
-             `/:-:++oooo+:
-            `/++++/+++++++:
-           `/++++++++++++++:
-          `/+++ooooooooooooo/`
-         ./ooosssso++osssssso+`
-        .oossssso-````/ossssss+`
-       -osssssso.      :ssssssso.
-      :osssssss/        osssso+++
-     /ossssssss/        +ssssooo/-
-   `/ossssso+/:-        -:/+osssso+-
-  `+sso+:-`                 `.-/+oso:
- `++:.                           `-/+/
- .`                                 `
-    """
-    return ascii_art
-
-
 def print_ascii_art(config):
     # Read the path to the ASCII art file from the config
     ascii_art_file = config.get('ascii_art_file', 'config/ascii_art.txt')  # Default path if not specified
@@ -204,11 +134,11 @@ def print_ascii_art(config):
     
     return ascii_art, ascii_width
 
-def fetch_directory_info(directory, config, file_details=False, current_only=False):
+def fetch_directory_info(directory, config, file_details=False, current_only=False, exclude_patterns=None, recursive=True, depth=None):
     # Assume count_files_in_directory and other necessary functions are defined elsewhere
     include_hidden = config.get("include_hidden_files", "off") == "on"
     total_files, file_sizes, last_changed_file, last_changed_time, subdirectories = count_files_in_directory(
-        directory, recursive=not current_only, include_hidden=include_hidden
+        directory, recursive=recursive, include_hidden=include_hidden, exclude_patterns=exclude_patterns, depth=depth
     )
 
     # Get the ASCII art and its width
@@ -254,20 +184,29 @@ def fetch_directory_info(directory, config, file_details=False, current_only=Fal
         info_line = (directory_info.splitlines() + [''] * lines)[i]  # Ensure equal length
         print(f"{ascii_line:<{ascii_width}} {info_line}")
 
-
 # Main function to parse arguments and execute the program
 def main():
     parser = argparse.ArgumentParser(description="Fetch directory information")
     parser.add_argument("directory", help="Directory to fetch information for")
     parser.add_argument("-c", "--config", default="config/dirfetch.conf", help="Path to config file")
-    parser.add_argument("-fd", "--file-details", action="store_true", help="Show detailed file information")
-    parser.add_argument("-cd", "--current-directory", action="store_true", help="Limit to current directory (non-recursive)")
-
+    parser.add_argument("-fd", "--file-details", action="store_true", help="Display detailed file information")
+    parser.add_argument("-r", "--recursive", action="store_true", help="Recurse into subdirectories")
+    parser.add_argument("-e", "--exclude", nargs="*", help="Exclude files matching these patterns")
+    parser.add_argument("-d", "--depth", type=int, help="Limit recursion depth")
     args = parser.parse_args()
-    config = load_config(args.config)
+
+    # Pass the appropriate 'recursive' value (True if --recursive flag is set, False if not)
+    recursive = args.recursive
+    depth = args.depth
     
-    current_directory_mode = args.current_directory or config.get("current_directory_mode", "off") == "on"
-    fetch_directory_info(args.directory, config, file_details=args.file_details, current_only=current_directory_mode)
+    config = load_config(args.config)
+    fetch_directory_info(
+        args.directory, config, 
+        file_details=args.file_details, 
+        exclude_patterns=args.exclude,
+        recursive=recursive,  # Pass the recursive flag
+        depth=depth  # Pass the depth value
+    )
 
 if __name__ == "__main__":
     main()
