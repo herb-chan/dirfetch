@@ -159,10 +159,10 @@ def fetch_directory_info(directory, config, file_details=False, current_only=Fal
     # Prepare the directory info (right side)
     directory_info = ""
     directory_info += "┌─────────── Directory Information ───────────┐\n"
-    directory_info += f"{config.get('total_files_message', '    Total Files: {}').format(total_files)}\n"
-    directory_info += f"{config.get('directory_size_message', '󰉖    Directory Size: {}').format(format_size(sum(data['size'] for data in file_sizes.values())))}\n"
-    directory_info += f"{config.get('last_modified_file_message', '󱇨    Last Modified File: {}').format(last_changed_file)}\n"
-    directory_info += f"{config.get('last_modified_date_message', '󱋢    Last Modified Date: {}').format(format_date(last_changed_time, config))}\n"
+    directory_info += f"{config.get('total_files_message', '      Total Files: {}').format(total_files)}\n"
+    directory_info += f"{config.get('directory_size_message', '  󰉖    Directory Size: {}').format(format_size(sum(data['size'] for data in file_sizes.values())))}\n"
+    directory_info += f"{config.get('last_modified_file_message', '  󱇨    Last Modified File: {}').format(last_changed_file)}\n"
+    directory_info += f"{config.get('last_modified_date_message', '  󱋢    Last Modified Date: {}').format(format_date(last_changed_time, config))}\n"
 
     # Only add a closing divider if there's no subdirectories and not current_only
     if not subdirectories and not file_details:
@@ -173,7 +173,7 @@ def fetch_directory_info(directory, config, file_details=False, current_only=Fal
         directory_info += "├─────────────── Subdirectories ──────────────┤\n"
         
         for sub in subdirectories:
-            directory_info += f"{config.get('cd_subdirectory_message', '󱧩    {}').format(sub)}\n"
+            directory_info += f"{config.get('cd_subdirectory_message', '  󱧩    {}').format(sub)}\n"
         
         if not file_details:
             directory_info += "└─────────────────────────────────────────────┘\n"
@@ -182,7 +182,7 @@ def fetch_directory_info(directory, config, file_details=False, current_only=Fal
     if file_details or config.get("file_details_enabled", "off") == "on":
         directory_info += "├───────── Detailed File Information ─────────┤\n"
         for ext, data in file_sizes.items():
-            directory_info += f"{config.get('fd_file_sizes_message', '󰓼    .{}: {} ({} files)').format(ext.lower(), format_size(data['size']), data['count'])}\n"
+            directory_info += f"{config.get('fd_file_sizes_message', '  󰓼    .{}: {} ({} files)').format(ext.lower(), format_size(data['size']), data['count'])}\n"
         directory_info += "└─────────────────────────────────────────────┘\n"
 
     # Now, print ASCII art and directory info side by side
