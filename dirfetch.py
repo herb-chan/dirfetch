@@ -1,8 +1,11 @@
 import os
 import argparse
 import fnmatch
+import json
 from datetime import datetime
 from collections import defaultdict
+from rich.console import Console
+from rich.style import Style
 
 # Function to read the configuration file and return relevant settings
 def load_config(config_file):
@@ -21,6 +24,16 @@ def load_config(config_file):
         print(f"Config file '{config_file}' not found. Using default settings.")
     return config
 
+# Function to load colors from pywal's colors.json
+def load_pywal_colors():
+    try:
+        with open(os.path.expanduser("~/.cache/wal/colors.json"), "r") as file:
+            colors = json.load(file)
+            return colors['colors']  # Extract the 'colors' dictionary
+    except FileNotFoundError:
+        print("Pywal colors file not found. Using default colors.")
+        return {f"cl{i}": "#FFFFFF" for i in range(1, 17)}  # Fallback to white for all colors
+
 # Format file size in a human-readable format
 def format_size(size_in_bytes):
     units = ['B', 'KB', 'MB', 'GB', 'TB']
@@ -31,7 +44,7 @@ def format_size(size_in_bytes):
     return f"{size_in_bytes:.2f} PB"
 
 # Count files and gather size information in the specified directory
-def count_files_in_directory(directory, recursive=True, include_hidden=True, exclude_patterns=None, depth=None):
+def count_files_in_directory(directory, include_hidden=True, exclude_patterns=None, depth=None):
     total_files = 0
     file_sizes = defaultdict(lambda: {"count": 0, "size": 0})
     subdirectories = []
@@ -143,55 +156,90 @@ def print_ascii_art(config):
     
     return ascii_art, ascii_width
 
-def fetch_directory_info(directory, config, file_details=False, current_only=False, exclude_patterns=None, recursive=True, depth=None):
-    # Assume count_files_in_directory and other necessary functions are defined elsewhere
+def apply_fstring(config_str, local_vars):
+    # Make sure we're inserting colors in Rich's format
+    for var_name, var_value in local_vars.items():
+        if var_name.startswith('cl') and isinstance(var_value, str):
+            # Used for colour variables
+            config_str = config_str.replace(f"{{{var_name}}}", f"[{var_value}]")
+        else:
+            # Used for other variables
+            config_str = config_str.replace(f"{{{var_name}}}", f"{var_value}")
+
+    return config_str
+
+def fetch_directory_info(directory, config, file_details=False, current_only=False, exclude_patterns=None, depth=None):
     include_hidden = config.get("include_hidden_files", "off") == "on"
     total_files, file_sizes, last_changed_file, last_changed_time, subdirectories = count_files_in_directory(
-        directory, recursive=recursive, include_hidden=include_hidden, exclude_patterns=exclude_patterns, depth=depth
+        directory, include_hidden=include_hidden, exclude_patterns=exclude_patterns, depth=depth
     )
+    colors = load_pywal_colors()
+    console = Console()
 
-    # Get the ASCII art and its width
+    # Map pywal colors to variables
+    cl0 = f"{colors['color0']}"
+    cl1 = f"{colors['color1']}"
+    cl2 = f"{colors['color2']}"
+    cl3 = f"{colors['color3']}"
+    cl4 = f"{colors['color4']}"
+    cl5 = f"{colors['color5']}"
+    cl6 = f"{colors['color6']}"
+    cl7 = f"{colors['color7']}"
+    cl8 = f"{colors['color8']}"
+    cl9 = f"{colors['color9']}"
+    cl10 = f"{colors['color10']}"
+    cl11 = f"{colors['color11']}"
+    cl12 = f"{colors['color12']}"
+    cl13 = f"{colors['color13']}"
+    cl14 = f"{colors['color14']}"
+    cl15 = f"{colors['color15']}"
+    cl16 = "reset"
+    clb = f"{Style(bold=True)}"
+
+    directory_size = format_size(sum(data['size'] for data in file_sizes.values()))
+    formatted_date = format_date(last_changed_time, config)
+
     ascii_art, ascii_width = print_ascii_art(config)
 
     if not ascii_art:
         return  # Exit if ASCII art could not be loaded
 
-    # Prepare the directory info (right side)
     directory_info = ""
     directory_info += "┌─────────── Directory Information ───────────┐\n"
-    directory_info += f"{config.get('total_files_message', '      Total Files: {}').format(total_files)}\n"
-    directory_info += f"{config.get('directory_size_message', '  󰉖    Directory Size: {}').format(format_size(sum(data['size'] for data in file_sizes.values())))}\n"
-    directory_info += f"{config.get('last_modified_file_message', '  󱇨    Last Modified File: {}').format(last_changed_file)}\n"
-    directory_info += f"{config.get('last_modified_date_message', '  󱋢    Last Modified Date: {}').format(format_date(last_changed_time, config))}\n"
+    directory_info += apply_fstring(config.get('total_files_message'), locals()) + "\n"
+    directory_info += apply_fstring(config.get('directory_size_message'), locals()) + "\n"
+    directory_info += apply_fstring(config.get('last_modified_file_message'), locals()) + "\n"
+    directory_info += apply_fstring(config.get('last_modified_date_message'), locals()) + "\n"
 
-    # Only add a closing divider if there's no subdirectories and not current_only
     if not subdirectories and not file_details:
         directory_info += "└─────────────────────────────────────────────┘\n"
 
-    # If subdirectories exist, add a section for subdirectories
     if subdirectories:
         directory_info += "├─────────────── Subdirectories ──────────────┤\n"
         
         for sub in subdirectories:
-            directory_info += f"{config.get('cd_subdirectory_message', '  󱧩    {}').format(sub)}\n"
+            directory_info += apply_fstring(config.get('cd_subdirectory_message'), locals()) + "\n"
         
         if not file_details:
             directory_info += "└─────────────────────────────────────────────┘\n"
 
-    # Handle file details section if required
     if file_details or config.get("file_details_enabled", "off") == "on":
         directory_info += "├───────── Detailed File Information ─────────┤\n"
         for ext, data in file_sizes.items():
-            directory_info += f"{config.get('fd_file_sizes_message', '  󰓼    .{}: {} ({} files)').format(ext.lower(), format_size(data['size']), data['count'])}\n"
+            extension = ext.lower()
+            size = format_size(data['size'])
+            count = data['count']
+
+            directory_info += apply_fstring(config.get('fd_file_sizes_message'), locals()) + "\n"
+        
         directory_info += "└─────────────────────────────────────────────┘\n"
 
-    # Now, print ASCII art and directory info side by side
     lines = max(len(ascii_art.splitlines()), len(directory_info.splitlines()))
     
     for i in range(lines):
         ascii_line = (ascii_art.splitlines() + [''] * lines)[i]  # Ensure equal length
         info_line = (directory_info.splitlines() + [''] * lines)[i]  # Ensure equal length
-        print(f"{ascii_line:<{ascii_width}} {info_line}")
+        console.print(f"{ascii_line:<{ascii_width}} {info_line}")
 
 # Main function to parse arguments and execute the program
 def main():
@@ -199,13 +247,10 @@ def main():
     parser.add_argument("directory", help="Directory to fetch information for")
     parser.add_argument("-c", "--config", default="config/dirfetch.conf", help="Path to config file")
     parser.add_argument("-fd", "--file-details", action="store_true", help="Display detailed file information")
-    parser.add_argument("-r", "--recursive", action="store_true", help="Recurse into subdirectories")
     parser.add_argument("-e", "--exclude", nargs="*", help="Exclude files matching these patterns")
     parser.add_argument("-d", "--depth", type=int, help="Limit recursion depth")
     args = parser.parse_args()
 
-    # Pass the appropriate 'recursive' value (True if --recursive flag is set, False if not)
-    recursive = args.recursive
     depth = args.depth
     
     config = load_config(args.config)
@@ -213,7 +258,6 @@ def main():
         args.directory, config, 
         file_details=args.file_details, 
         exclude_patterns=args.exclude,
-        recursive=recursive,  # Pass the recursive flag
         depth=depth  # Pass the depth value
     )
 
