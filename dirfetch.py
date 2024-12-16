@@ -11,6 +11,30 @@ from rich.style import Style
 # Function to read the configuration file and return relevant settings
 def load_config(config_file):
     config = {}
+    default_backup_config = {
+        'include_hidden_files': 'on', 
+        'show_title': 'on', 
+        'title_message': '{cl10}\U000f0256 {cl16}: {directory}', 
+        'date_display_mode': 'auto', 
+        'date_format': '%d.%m.%Y', 
+        'file_details_enabled': 'off', 
+        'total_files_message': '{cl2}\uf0c5 {clb}Files{cl16}: {total_files}', 
+        'directory_size_message': '{cl4}\U000f0256 {clb}Size{cl16}: {directory_size}', 
+        'last_modified_file_message': '{cl1}\U000f11e8 {clb}Changed File{cl16}: {last_changed_file}', 
+        'last_modified_file_path_message': '{cl1}\U000f11e8 {clb}Changed File Path{cl16}: {file_path}', 
+        'last_modified_date_message': '{cl6}\U000f12e2 {clb}Change Date{cl16}:  {formatted_date}', 
+        'cd_subdirectory_message': '{cl5}\U000f19e9 {clb}SUB{cl16}: {sub}', 
+        'fd_file_sizes_message': '{cl5}\U000f04fc {clb}EXT{cl16}: .{extension} {size} ({count})', 
+        'ascii_art_file': 'assets/ascii/dir_small.txt', 
+        'enable_separators': 'on', 
+        'separator_symbol': '─', 
+        'separator_length': '35', 
+        'enable_pywal_not_found_error': 'off', 
+        'enable_json_decode_error': 'off', 
+        'enable_file_not_found_error': 'off', 
+        'enable_ascii_not_found_error': 'off'
+    }
+
     try:
         with open(config_file, "r", encoding="utf-8") as file:
             for line in file:
@@ -21,14 +45,18 @@ def load_config(config_file):
                 if '=' in line:
                     key, value = line.split("=", 1)
                     config[key.strip()] = value.split("#", 1)[0].strip().strip('"')
+    
     except FileNotFoundError:
         print(f"Config file '{config_file}' not found. Using default settings.")
+        config = default_backup_config
+
     except UnicodeDecodeError:
         print(f"Error decoding the config file '{config_file}'. Please check the file encoding.")
+        
     return config
 
 # Function to load colors from pywal's colors.json
-def load_pywal_colors():
+def load_pywal_colors(config):
     os_name = platform.system()
 
     if os_name == "Windows":
@@ -43,11 +71,15 @@ def load_pywal_colors():
             return colors['colors']  # Extract the 'colors' dictionary
         
     except FileNotFoundError:
-        print("Pywal colors file not found. Using default colors.")
+        if config.get('enable_pywal_not_found_error') == "on":
+            print("Pywal colors file not found. Using default colors.")
+
         return {f"color{i}": "#FFFFFF" for i in range(0, 16)}  # Fallback to white for all colors
     
     except json.JSONDecodeError as e:
-        print(f"JSONDecodeError: {e.msg} at line {e.lineno} column {e.colno}")
+        if config.get('enable_json_decode_error') == "on":
+            print(f"JSONDecodeError: {e.msg} at line {e.lineno} column {e.colno}")
+        
         return {f"color{i}": "#FFFFFF" for i in range(0, 16)}  # Fallback to white for all colors
 
 # Format file size in a human-readable format
@@ -60,7 +92,7 @@ def format_size(size_in_bytes):
     return f"{size_in_bytes:.2f} PB"
 
 # Count files and gather size information in the specified directory
-def count_files_in_directory(directory, include_hidden=True, exclude_patterns=None, depth=None):
+def count_files_in_directory(directory, config, include_hidden=True, exclude_patterns=None, depth=None):
     total_files = 0
     file_sizes = defaultdict(lambda: {"count": 0, "size": 0})
     subdirectories = []
@@ -109,7 +141,11 @@ def count_files_in_directory(directory, include_hidden=True, exclude_patterns=No
                     last_changed_file = file
 
                 total_files += 1
-            except FileNotFoundError:
+            
+            except FileNotFoundError as e:
+                if config.get('enable_file_not_found_error'):
+                    print(f"File not found: {file_path}. Error: {str(e)}")
+
                 continue
 
     return total_files, file_sizes, last_changed_file, file_path, last_changed_time, subdirectories
@@ -162,8 +198,19 @@ def print_ascii_art(config):
     try:
         with open(ascii_art_file, 'r') as file:
             ascii_art = file.read()
+
     except FileNotFoundError:
-        print(f"Error: The ASCII art file '{ascii_art_file}' was not found.")
+        if config.get('enable_ascii_not_found_error') == "on":
+            print(f"Error: The ASCII art file '{ascii_art_file}' was not found. Trying to use the default ASCII art file.")
+
+            if ascii_art_file != 'assets/ascii/dir.txt':
+                try:
+                    with open('assets/ascii/dir.txt', 'r') as file:
+                        ascii_art = file.read()
+
+                except FileNotFoundError:
+                    print(f"Error: Default ASCII art file not found.")
+
         return '', 0  # Return empty art and 0 width in case of error
     
     # Calculate the width of the ASCII art (longest line + 1)
@@ -187,9 +234,9 @@ def apply_fstring(config_str, local_vars):
 def fetch_directory_info(directory, config, file_details=False, current_only=False, exclude_patterns=None, depth=None):
     include_hidden = config.get("include_hidden_files", "off") == "on"
     total_files, file_sizes, last_changed_file, file_path, last_changed_time, subdirectories = count_files_in_directory(
-        directory, include_hidden=include_hidden, exclude_patterns=exclude_patterns, depth=depth
+        directory, config, include_hidden=include_hidden, exclude_patterns=exclude_patterns, depth=depth
     )
-    colors = load_pywal_colors()
+    colors = load_pywal_colors(config)
     console = Console()
 
     # Map pywal colors to variables
