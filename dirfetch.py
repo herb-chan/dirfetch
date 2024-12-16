@@ -11,7 +11,7 @@ from rich.style import Style
 def load_config(config_file):
     config = {}
     try:
-        with open(config_file, "r") as file:
+        with open(config_file, "r", encoding="utf-8") as file:
             for line in file:
                 line = line.strip()
                 # Skip blank lines and comments
@@ -22,6 +22,8 @@ def load_config(config_file):
                     config[key.strip()] = value.split("#", 1)[0].strip().strip('"')
     except FileNotFoundError:
         print(f"Config file '{config_file}' not found. Using default settings.")
+    except UnicodeDecodeError:
+        print(f"Error decoding the config file '{config_file}'. Please check the file encoding.")
     return config
 
 # Function to load colors from pywal's colors.json
@@ -32,7 +34,7 @@ def load_pywal_colors():
             return colors['colors']  # Extract the 'colors' dictionary
     except FileNotFoundError:
         print("Pywal colors file not found. Using default colors.")
-        return {f"cl{i}": "#FFFFFF" for i in range(1, 17)}  # Fallback to white for all colors
+        return {f"color{i}": "#FFFFFF" for i in range(0, 16)}  # Fallback to white for all colors
 
 # Format file size in a human-readable format
 def format_size(size_in_bytes):
@@ -140,7 +142,7 @@ def format_date(last_changed_time, config):
 
 def print_ascii_art(config):
     # Read the path to the ASCII art file from the config
-    ascii_art_file = config.get('ascii_art_file', 'config/ascii_art.txt')  # Default path if not specified
+    ascii_art_file = config.get('ascii_art_file', 'assets/ascii/dir.txt')  # Default path if not specified
     
     # Read the ASCII art from the file
     try:
@@ -205,26 +207,33 @@ def fetch_directory_info(directory, config, file_details=False, current_only=Fal
         return  # Exit if ASCII art could not be loaded
 
     directory_info = ""
-    directory_info += "┌─────────── Directory Information ───────────┐\n"
+    if config.get('enable_separators') == 'on': 
+        directory_info += f"{config.get('separator_symbol') * 30}\n"
+        
     directory_info += apply_fstring(config.get('total_files_message'), locals()) + "\n"
     directory_info += apply_fstring(config.get('directory_size_message'), locals()) + "\n"
     directory_info += apply_fstring(config.get('last_modified_file_message'), locals()) + "\n"
     directory_info += apply_fstring(config.get('last_modified_date_message'), locals()) + "\n"
 
     if not subdirectories and not file_details:
-        directory_info += "└─────────────────────────────────────────────┘\n"
+        if config.get('enable_separators') == 'on': 
+            directory_info += f"{config.get('separator_symbol') * 30}\n"
 
     if subdirectories:
-        directory_info += "├─────────────── Subdirectories ──────────────┤\n"
+        if config.get('enable_separators') == 'on': 
+            directory_info += f"{config.get('separator_symbol') * 30}\n"
         
         for sub in subdirectories:
             directory_info += apply_fstring(config.get('cd_subdirectory_message'), locals()) + "\n"
         
         if not file_details:
-            directory_info += "└─────────────────────────────────────────────┘\n"
+            if config.get('enable_separators') == 'on': 
+                directory_info += f"{config.get('separator_symbol') * 30}\n"
 
     if file_details or config.get("file_details_enabled", "off") == "on":
-        directory_info += "├───────── Detailed File Information ─────────┤\n"
+        if config.get('enable_separators') == 'on': 
+            directory_info += f"{config.get('separator_symbol') * 30}\n"
+
         for ext, data in file_sizes.items():
             extension = ext.lower()
             size = format_size(data['size'])
@@ -232,7 +241,8 @@ def fetch_directory_info(directory, config, file_details=False, current_only=Fal
 
             directory_info += apply_fstring(config.get('fd_file_sizes_message'), locals()) + "\n"
         
-        directory_info += "└─────────────────────────────────────────────┘\n"
+        if config.get('enable_separators') == 'on': 
+            directory_info += f"{config.get('separator_symbol') * 30}\n"
 
     lines = max(len(ascii_art.splitlines()), len(directory_info.splitlines()))
     
