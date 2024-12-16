@@ -112,7 +112,7 @@ def count_files_in_directory(directory, include_hidden=True, exclude_patterns=No
             except FileNotFoundError:
                 continue
 
-    return total_files, file_sizes, last_changed_file, last_changed_time, subdirectories
+    return total_files, file_sizes, last_changed_file, file_path, last_changed_time, subdirectories
 
 # Format the last modified date based on configuration
 def format_date(last_changed_time, config):
@@ -186,7 +186,7 @@ def apply_fstring(config_str, local_vars):
 
 def fetch_directory_info(directory, config, file_details=False, current_only=False, exclude_patterns=None, depth=None):
     include_hidden = config.get("include_hidden_files", "off") == "on"
-    total_files, file_sizes, last_changed_file, last_changed_time, subdirectories = count_files_in_directory(
+    total_files, file_sizes, last_changed_file, file_path, last_changed_time, subdirectories = count_files_in_directory(
         directory, include_hidden=include_hidden, exclude_patterns=exclude_patterns, depth=depth
     )
     colors = load_pywal_colors()
@@ -231,6 +231,7 @@ def fetch_directory_info(directory, config, file_details=False, current_only=Fal
     directory_info += apply_fstring(config.get('total_files_message'), locals()) + "\n"
     directory_info += apply_fstring(config.get('directory_size_message'), locals()) + "\n"
     directory_info += apply_fstring(config.get('last_modified_file_message'), locals()) + "\n"
+    directory_info += apply_fstring(config.get('last_modified_file_path_message'), locals()) + "\n"
     directory_info += apply_fstring(config.get('last_modified_date_message'), locals()) + "\n"
 
     if not subdirectories and not file_details:
