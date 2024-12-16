@@ -207,9 +207,13 @@ def fetch_directory_info(directory, config, file_details=False, current_only=Fal
         return  # Exit if ASCII art could not be loaded
 
     directory_info = ""
+
+    if config.get('show_title') == 'on':
+        directory_info += apply_fstring(config.get('title_message'), locals()) + "\n"
+
     if config.get('enable_separators') == 'on': 
-        directory_info += f"{config.get('separator_symbol') * 30}\n"
-        
+        directory_info += f"{config.get('separator_symbol') * int(config.get('separator_length'))}\n"
+
     directory_info += apply_fstring(config.get('total_files_message'), locals()) + "\n"
     directory_info += apply_fstring(config.get('directory_size_message'), locals()) + "\n"
     directory_info += apply_fstring(config.get('last_modified_file_message'), locals()) + "\n"
@@ -217,22 +221,22 @@ def fetch_directory_info(directory, config, file_details=False, current_only=Fal
 
     if not subdirectories and not file_details:
         if config.get('enable_separators') == 'on': 
-            directory_info += f"{config.get('separator_symbol') * 30}\n"
+            directory_info += f"{config.get('separator_symbol') * int(config.get('separator_length'))}\n"
 
     if subdirectories:
         if config.get('enable_separators') == 'on': 
-            directory_info += f"{config.get('separator_symbol') * 30}\n"
+            directory_info += f"{config.get('separator_symbol') * int(config.get('separator_length'))}\n"
         
         for sub in subdirectories:
             directory_info += apply_fstring(config.get('cd_subdirectory_message'), locals()) + "\n"
         
         if not file_details:
             if config.get('enable_separators') == 'on': 
-                directory_info += f"{config.get('separator_symbol') * 30}\n"
+                directory_info += f"{config.get('separator_symbol') * int(config.get('separator_length'))}\n"
 
     if file_details or config.get("file_details_enabled", "off") == "on":
         if config.get('enable_separators') == 'on': 
-            directory_info += f"{config.get('separator_symbol') * 30}\n"
+            directory_info += f"{config.get('separator_symbol') * int(config.get('separator_length'))}\n"
 
         for ext, data in file_sizes.items():
             extension = ext.lower()
@@ -242,7 +246,7 @@ def fetch_directory_info(directory, config, file_details=False, current_only=Fal
             directory_info += apply_fstring(config.get('fd_file_sizes_message'), locals()) + "\n"
         
         if config.get('enable_separators') == 'on': 
-            directory_info += f"{config.get('separator_symbol') * 30}\n"
+            directory_info += f"{config.get('separator_symbol') * int(config.get('separator_length'))}\n"
 
     lines = max(len(ascii_art.splitlines()), len(directory_info.splitlines()))
     
