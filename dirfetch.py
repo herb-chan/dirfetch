@@ -56,8 +56,6 @@ def load_config(config_file):
             f"Error decoding the config file '{config_file}'. Please check the file encoding."
         )
 
-    print(config)
-
     return config
 
 
@@ -268,7 +266,6 @@ def fetch_directory_info(
     directory,
     config,
     file_details=False,
-    current_only=False,
     exclude_patterns=None,
     depth=None,
 ):
