@@ -110,6 +110,7 @@ def count_files_in_directory(
     file_sizes = defaultdict(lambda: {"count": 0, "size": 0})
     subdirectories = []
     last_changed_file = None
+    last_changed_file_path = None
     last_changed_time = 0
 
     # Interpret depth correctly
@@ -156,6 +157,7 @@ def count_files_in_directory(
                 if file_mtime > last_changed_time:
                     last_changed_time = file_mtime
                     last_changed_file = file
+                    last_changed_file_path = file_path
 
                 total_files += 1
 
@@ -169,7 +171,7 @@ def count_files_in_directory(
         total_files,
         file_sizes,
         last_changed_file,
-        file_path,
+        last_changed_file_path,
         last_changed_time,
         subdirectories,
     )
@@ -266,7 +268,6 @@ def apply_fstring(config_str, local_vars):
     return config_str
 
 
-
 def fetch_directory_info(
     directory,
     config,
@@ -279,7 +280,7 @@ def fetch_directory_info(
         total_files,
         file_sizes,
         last_changed_file,
-        file_path,
+        last_changed_file_path,
         last_changed_time,
         subdirectories,
     ) = count_files_in_directory(
@@ -378,23 +379,26 @@ def fetch_directory_info(
             directory_info += f"{config.get('separator_symbol') * int(config.get('separator_length'))}\n"
 
     # Create a Table for better presentation
-    table = Table(show_header=False, box=None, padding=(0, 1))  # Add padding to each column
+    table = Table(
+        show_header=False, box=None, padding=(0, 1)
+    )  # Add padding to each column
 
     # Add columns for ASCII art and info with a space gap
-    table.add_column("", width=ascii_width, justify="left")  # Left padding for the first column
+    table.add_column(
+        "", width=ascii_width, justify="left"
+    )  # Left padding for the first column
     table.add_column("", width=60, justify="left")  # Left padding for the second column
 
-    
     ascii_lines = ascii_art.splitlines()
     directory_info_lines = directory_info.splitlines()
-    
+
     # Add rows with ASCII art and info side by side
     for i in range(max(len(ascii_lines), len(directory_info_lines))):
         ascii_line = (ascii_lines + [""] * len(directory_info_lines))[i]
         info_line = (directory_info_lines + [""] * len(ascii_lines))[i]
 
         table.add_row(ascii_line, info_line)
-    
+
     # Print the table
     console.print(table)
 
