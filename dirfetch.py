@@ -385,7 +385,7 @@ def fetch_directory_info(
 
     # Add columns for ASCII art and info with a space gap
     table.add_column(
-        "", width=ascii_width, justify="left"
+        "", width=ascii_width - 1, justify="left"
     )  # Left padding for the first column
     table.add_column("", width=60, justify="left")  # Left padding for the second column
 
