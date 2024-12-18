@@ -7,6 +7,7 @@ from datetime import datetime
 from collections import defaultdict
 from rich.console import Console
 from rich.style import Style
+from rich.table import Table
 
 
 # Function to read the configuration file and return relevant settings
@@ -246,6 +247,9 @@ def print_ascii_art(config):
     ascii_lines = ascii_art.splitlines()
     ascii_width = max(len(line) for line in ascii_lines) + 1
 
+    ascii_lines = [f"[bold]{line}" for line in ascii_lines]
+    ascii_art = "\n".join(ascii_lines)
+
     return ascii_art, ascii_width
 
 
@@ -260,6 +264,7 @@ def apply_fstring(config_str, local_vars):
             config_str = config_str.replace(f"{{{var_name}}}", f"{var_value}")
 
     return config_str
+
 
 
 def fetch_directory_info(
@@ -372,14 +377,26 @@ def fetch_directory_info(
         if config.get("enable_separators") == "on":
             directory_info += f"{config.get('separator_symbol') * int(config.get('separator_length'))}\n"
 
-    lines = max(len(ascii_art.splitlines()), len(directory_info.splitlines()))
+    # Create a Table for better presentation
+    table = Table(show_header=False, box=None, padding=(0, 1))  # Add padding to each column
 
-    for i in range(lines):
-        ascii_line = (ascii_art.splitlines() + [""] * lines)[i]  # Ensure equal length
-        info_line = (directory_info.splitlines() + [""] * lines)[
-            i
-        ]  # Ensure equal length
-        console.print(f"{ascii_line:<{ascii_width}} {info_line}")
+    # Add columns for ASCII art and info with a space gap
+    table.add_column("", width=ascii_width, justify="left")  # Left padding for the first column
+    table.add_column("", width=60, justify="left")  # Left padding for the second column
+
+    
+    ascii_lines = ascii_art.splitlines()
+    directory_info_lines = directory_info.splitlines()
+    
+    # Add rows with ASCII art and info side by side
+    for i in range(max(len(ascii_lines), len(directory_info_lines))):
+        ascii_line = (ascii_lines + [""] * len(directory_info_lines))[i]
+        info_line = (directory_info_lines + [""] * len(ascii_lines))[i]
+
+        table.add_row(ascii_line, info_line)
+    
+    # Print the table
+    console.print(table)
 
 
 def main():
