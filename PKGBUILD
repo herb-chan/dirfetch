@@ -1,5 +1,5 @@
 pkgname=dirfetch
-pkgver=1.0.3
+pkgver=1.0.4
 pkgrel=1
 pkgdesc="A customizable directory-fetching tool like neofetch"
 arch=('any')
@@ -14,7 +14,7 @@ build() {
   cd "$srcdir/$pkgname-$pkgver"
   python -m venv venv  # Create a virtual environment (optional, for building)
   source venv/bin/activate  # Activate the virtual environment
-  pip install setuptools wheel build  # Install the required build tools
+  pip install --upgrade pip setuptools wheel  # Ensure pip and build tools are up to date
   python -m build --wheel  # Build the package into a wheel
 }
 
@@ -22,6 +22,6 @@ package() {
   cd "$srcdir/$pkgname-$pkgver"
   source venv/bin/activate  # Activate the virtual environment
 
-  # Install the package directly into the $pkgdir for global installation
-  python setup.py install --root="$pkgdir" --optimize=1  # Install the package to the $pkgdir
+  # Install the built wheel into the $pkgdir
+  pip install --no-deps --root="$pkgdir" dist/*.whl
 }
