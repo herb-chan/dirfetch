@@ -17,10 +17,10 @@ $(VENV_DIR):
 # Install target
 install: $(VENV_DIR)
 	@echo "Installing $(NAME)..."
-	# Install or upgrade pip in virtual environment
+	# Install or upgrade pip in the virtual environment
 	$(VENV_DIR)/bin/pip install --upgrade pip
-	# Install the package
-	$(VENV_DIR)/bin/pip install --user .
+	# Install the package into the virtual environment
+	$(VENV_DIR)/bin/pip install .
 	@echo "$(NAME) installed successfully."
 
 # Build the project (create the binary from the source)
@@ -38,6 +38,7 @@ clean:
 uninstall:
 	@echo "Uninstalling $(NAME)..."
 	rm -f $(INSTALL_DIR)/$(NAME)
+	rm -rf $(VENV_DIR)
 	@echo "$(NAME) uninstalled successfully."
 
 # Ensure that the bin directory exists
