@@ -1,5 +1,5 @@
 pkgname=dirfetch
-pkgver=1.0.2
+pkgver=1.0.3
 pkgrel=1
 pkgdesc="A customizable directory-fetching tool like neofetch"
 arch=('any')
