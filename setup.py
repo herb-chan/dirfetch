@@ -1,15 +1,14 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='dirfetch',
-    version='1.0.10',
-    packages=find_packages(where='source'),
-    install_requires=[
-        # List any dependencies here (e.g., 'requests')
-    ],
+    name="dirfetch",
+    version="1.0.11",
+    packages=find_packages(where='source'),  # Finds the source directory
+    include_package_data=True,
+    install_requires=[],
     entry_points={
         'console_scripts': [
-            'dirfetch=source.main:main',  # Assumes 'main.py' has a function 'main()'
+            'dirfetch = source.main:main',  # The entry point for the CLI
         ],
     },
 )
