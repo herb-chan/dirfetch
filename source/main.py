@@ -1,5 +1,5 @@
+import os
 import argparse
-
 from display import fetch_directory_info
 from config import load_config
 
@@ -22,8 +22,8 @@ def main():
     config_group.add_argument(
         "-c",
         "--config",
-        default="config/dirfetch.conf",
-        help="Path to the config file (default: config/dirfetch.conf).",
+        default="~/.config/dirfetch/dirfetch.conf",
+        help="Path to the config file (default: ~/.config/dirfetch/dirfetch.conf).",
     )
 
     # Display Options
@@ -51,8 +51,11 @@ def main():
 
     args = parser.parse_args()
 
+    # Expand the config path if necessary
+    config_file_path = os.path.expanduser(args.config)
+    config = load_config(config_file_path)
+
     depth = args.depth
-    config = load_config(args.config)
     fetch_directory_info(
         args.directory,
         config,
