@@ -1,6 +1,6 @@
 # Variables
 NAME = dirfetch
-INSTALL_DIR = $(HOME)/.local/bin
+INSTALL_DIR = /usr/local/bin
 SRC_DIR = source
 BIN_DIR = bin
 PYTHON = $(shell command -v python3 || command -v python)
@@ -16,11 +16,13 @@ $(VENV_DIR):
 
 # Install target
 install: $(VENV_DIR)
-	@echo "Installing $(NAME)..."
-	# Install or upgrade pip in the virtual environment
+	@echo "Installing $(NAME) globally..."
+	# Install or upgrade pip in virtual environment
 	$(VENV_DIR)/bin/pip install --upgrade pip
-	# Install the package into the virtual environment
-	$(VENV_DIR)/bin/pip install .
+	# Install the package globally
+	$(VENV_DIR)/bin/pip install .  # This will install it into the venv but not use --user
+	# Move the dirfetch binary to the INSTALL_DIR (make it globally available)
+	sudo cp $(VENV_DIR)/bin/dirfetch $(INSTALL_DIR)/
 	@echo "$(NAME) installed successfully."
 
 # Build the project (create the binary from the source)
@@ -37,8 +39,7 @@ clean:
 # Uninstall the package
 uninstall:
 	@echo "Uninstalling $(NAME)..."
-	rm -f $(INSTALL_DIR)/$(NAME)
-	rm -rf $(VENV_DIR)
+	sudo rm -f $(INSTALL_DIR)/$(NAME)
 	@echo "$(NAME) uninstalled successfully."
 
 # Ensure that the bin directory exists
