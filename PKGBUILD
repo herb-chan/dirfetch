@@ -1,5 +1,5 @@
 pkgname=dirfetch
-pkgver=1.0.1
+pkgver=1.0.2
 pkgrel=1
 pkgdesc="A customizable directory-fetching tool like neofetch"
 arch=('any')
@@ -7,11 +7,8 @@ url="https://github.com/herb-chan/dirfetch"
 license=('MIT')
 depends=('python' 'python-rich')
 makedepends=('python-setuptools' 'python-wheel' 'python-build')
-
-# No source URL or tarball, just use the current directory (assuming you have cloned the repo)
-source=()
-
-sha256sums=('SKIP')  # No need for a checksum since we're not fetching a tarball
+source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('SKIP')  # Placeholder for checksum, to be filled automatically by makepkg
 
 build() {
   cd "$srcdir/$pkgname-$pkgver"
