@@ -1,5 +1,3 @@
-# Makefile for dirfetch
-
 # Variables
 NAME = dirfetch
 INSTALL_DIR = /usr/local/bin
@@ -11,15 +9,16 @@ PYTHON = python3
 all: install
 
 # Install target
-install: $(BIN_DIR)/$(NAME)
+install:
 	@echo "Installing $(NAME)..."
-	install -m 755 $(BIN_DIR)/$(NAME) $(INSTALL_DIR)
+	$(PYTHON) -m pip install --user .
 	@echo "$(NAME) installed successfully."
 
 # Build the project (create the binary from the source)
 $(BIN_DIR)/$(NAME): $(SRC_DIR)/*
 	@echo "Building $(NAME)..."
-	$(PYTHON) setup.py install
+	# This step is not needed since pip will handle the installation
+	# $(PYTHON) setup.py install
 
 # Clean up the build
 clean:
@@ -29,5 +28,6 @@ clean:
 # Uninstall the package
 uninstall:
 	@echo "Uninstalling $(NAME)..."
-	rm -f $(INSTALL_DIR)/$(NAME)
+	# You can optionally uninstall with pip
+	$(PYTHON) -m pip uninstall -y $(NAME)
 	@echo "$(NAME) uninstalled successfully."
