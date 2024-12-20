@@ -2,13 +2,14 @@ from setuptools import setup, find_packages
 
 setup(
     name="dirfetch",
-    version="1.0.11",
-    packages=find_packages(where='source'),  # Finds the source directory
+    version="1.0.12",
+    packages=find_packages(where='source'),  # Ensures source directory is included
     include_package_data=True,
     install_requires=[],
+    package_dir={"": "source"},  # This tells setuptools where to find your package
     entry_points={
         'console_scripts': [
-            'dirfetch = source.main:main',  # The entry point for the CLI
+            'dirfetch = main:main',  # Entry point should be from the main module
         ],
     },
 )
