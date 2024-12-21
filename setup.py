@@ -1,17 +1,16 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 
 setup(
     name="dirfetch",
-    version="1.0.22",
+    version="1.0.23",
     description="Dirfetch",
     author="herb",
-    packages=find_packages(where="source"),
-    package_dir={"": "source"},  # Map the root package to "source"
+    py_modules=["main"],  # Specify main.py as the module
     include_package_data=True,
     install_requires=[],
     entry_points={
         "console_scripts": [
-            "dirfetch=source.main:main",  # Adjusted import path to look inside "source"
+            "dirfetch=main:main",  # Adjusted to import directly from main.py
         ],
     },
 )
