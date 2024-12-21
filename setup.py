@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="dirfetch",
-    version="1.0.17,
+    version="1.0.18",
     packages=find_packages("source"),
     package_dir={"": "source"},  # Map the root of the packages to "source"
     include_package_data=True,
